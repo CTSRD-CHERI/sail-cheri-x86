@@ -1,0 +1,3 @@
+[submodule "sail-x86"]
+	path = sail-x86
+	url = https://github.com/rems-project/sail-x86-from-acl2.git
