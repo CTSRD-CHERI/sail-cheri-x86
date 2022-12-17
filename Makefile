@@ -14,6 +14,9 @@ SAIL_X86_MODEL_DIR=$(SAIL_X86_DIR)/model
 SAIL_CHERI_MODEL_DIR=src
 
 PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
+		$(SAIL_CHERI_MODEL_DIR)/cheri_prelude.sail \
+		$(SAIL_CHERI_MODEL_DIR)/cheri_types.sail \
+		$(SAIL_CHERI_MODEL_DIR)/cheri_cap_common.sail \
 		$(SAIL_X86_MODEL_DIR)/register_types.sail \
 		$(SAIL_X86_MODEL_DIR)/registers.sail \
 		$(SAIL_X86_MODEL_DIR)/register_accessors.sail \

@@ -1,11 +1,15 @@
 CHERI x86-64 Sail Model
 
-This CHERI Sail x86-64 architecture model here, comprising all files and
-directories is subject to the BSD two-clause licence below.
+This CHERI Sail x86-64 architecture model here, comprising all files
+and directories is subject to the BSD two-clause licence below except
+for files derived from the Sail x86 model which are subject to the
+terms of a BSD three-clause licence and additionally the licence of
+the original ACL2 x86 model, from which the Sail model is generated
+(see `sail-x86/model/LICENSE`).
 
 SPDX-License-Identifier: BSD-2-Clause
 
-Copyright (c) 2017-2022
+Copyright (c) 2017-2021
   Alasdair Armstrong
   Thomas Bauereiss
   Brian Campbell
@@ -18,7 +22,10 @@ Copyright (c) 2017-2022
   Alexander Richardson
   Peter Rugg
   Peter Sewell
-  SRI International
+
+Copyright (c) 2020 Patrick Taylor
+Copyright (c) 2022 Capabilities Limited
+Copyright (c) 2022 SRI International
 
 This software was developed by SRI International and the University of
 Cambridge Computer Laboratory (Department of Computer Science and
@@ -38,6 +45,9 @@ This software was developed by SRI International, the University of
 Cambridge Computer Laboratory (Department of Computer Science and
 Technology), and Capabilities Limited under Defense Advanced Research
 Projects Agency (DARPA) Contract No. HR001122C0110 ("ETC").
+
+Portions of this software were developed by Thomas Bauereiss under
+contract to Capabilities Limited.
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions
