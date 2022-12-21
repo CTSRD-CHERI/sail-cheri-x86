@@ -22,7 +22,7 @@ PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
 		$(SAIL_X86_MODEL_DIR)/register_accessors.sail \
 		$(SAIL_X86_MODEL_DIR)/memory_accessors.sail \
 		$(SAIL_X86_MODEL_DIR)/opcode_ext.sail
-MAIN_SAIL=$(SAIL_X86_MODEL_DIR)/main.sail
+MAIN_SAIL=$(SAIL_CHERI_MODEL_DIR)/main.sail
 
 CC?=gcc
 
