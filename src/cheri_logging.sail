@@ -23,6 +23,7 @@ function printState () = {
 	print_bits("rflags = ", rflags.bits);
 
 	print_endline("cip = " + capToString(rip));
+	print_endline("ddc = " + capToString(ddc));
 }
 
 function log_memory_read(addr, value) = {
