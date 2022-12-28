@@ -50,7 +50,7 @@ function __ListConfig () = ()
 // This function is so we can compile to a C emulator which does pretty does everything
 val doEverything : unit -> unit effect {eamem, escape, rmem, rreg, undef, wmv, wreg}
 function doEverything () = {
-	//initialiseState();
+	ddc = default_cap;
 	steps = x86_run_halt(haltAddrReg, 10000, true, false, 0);
 	print_int("Steps = ", steps);
 }

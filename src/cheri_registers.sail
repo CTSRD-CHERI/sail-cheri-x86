@@ -1,0 +1,1 @@
+register ddc: Capability
