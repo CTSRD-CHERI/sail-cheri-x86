@@ -24,7 +24,7 @@ PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
 		$(SAIL_X86_MODEL_DIR)/opcode_ext.sail \
 		$(SAIL_X86_MODEL_DIR)/init.sail \
 		$(SAIL_X86_MODEL_DIR)/config.sail \
-		$(SAIL_X86_MODEL_DIR)/logging.sail
+		$(SAIL_CHERI_MODEL_DIR)/cheri_logging.sail
 MODEL_SAILS=$(SAIL_X86_MODEL_DIR)/step.sail
 MAIN_SAIL=$(SAIL_X86_MODEL_DIR)/main.sail
 ALL_SAILS=$(PRELUDE_SAILS) $(MODEL_SAILS) $(MAIN_SAIL)
