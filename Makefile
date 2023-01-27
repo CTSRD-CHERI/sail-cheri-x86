@@ -21,8 +21,13 @@ PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
 		$(SAIL_X86_MODEL_DIR)/registers.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_register_accessors.sail \
 		$(SAIL_X86_MODEL_DIR)/memory_accessors.sail \
-		$(SAIL_X86_MODEL_DIR)/opcode_ext.sail
+		$(SAIL_X86_MODEL_DIR)/opcode_ext.sail \
+		$(SAIL_X86_MODEL_DIR)/init.sail \
+		$(SAIL_X86_MODEL_DIR)/config.sail \
+		$(SAIL_X86_MODEL_DIR)/logging.sail
+MODEL_SAILS=$(SAIL_X86_MODEL_DIR)/step.sail
 MAIN_SAIL=$(SAIL_X86_MODEL_DIR)/main.sail
+ALL_SAILS=$(PRELUDE_SAILS) $(MODEL_SAILS) $(MAIN_SAIL)
 
 CC?=gcc
 
@@ -30,15 +35,15 @@ all: x86_emulator
 
 .PHONY: all clean interactive
 
-x86_emulator.c: $(PRELUDE_SAILS) $(MAIN_SAIL)
-	$(SAIL) -c -memo_z3 $(SAIL_FLAGS) $(PRELUDE_SAILS) $(MAIN_SAIL) > x86_emulator.c.temp
+x86_emulator.c: $(ALL_SAILS)
+	$(SAIL) -c -memo_z3 $(SAIL_FLAGS) $(ALL_SAILS) > x86_emulator.c.temp
 	mv x86_emulator.c.temp x86_emulator.c
 
 x86_emulator: x86_emulator.c
 	$(CC) -O2 -DHAVE_SETCONFIG x86_emulator.c $(SAIL_DIR)/lib/*.c -lgmp -lz -I $(SAIL_DIR)/lib/ -o x86_emulator
 
 interactive:
-	$(SAIL) -i -memo_z3 $(SAIL_FLAGS) $(PRELUDE_SAILS) $(MAIN_SAIL)
+	$(SAIL) -i -memo_z3 $(SAIL_FLAGS) $(ALL_SAILS)
 
 clean:
 	rm -f x86_emulator.c x86_emulator
