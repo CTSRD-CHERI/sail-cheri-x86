@@ -8,16 +8,81 @@ $include "../sail-x86/model/segmentation.sail"
 // For prefixes bitfield definition:
 $include "../sail-x86/model/opcode_ext.sail"
 
-type address_size = {|2, 4, 8|}
-type base_reg_idx = range(0, 15)
+type address_size = {|2, 4, 8, 16|}
+type moffset_size = {|2, 4, 8|}
+// 0-15 : GPRs, 16 : CIP, 17: DDC, 18: CFS, 19: CGS
+type base_reg_idx = range(0, 19)
 type seg_reg_idx = range(0, 5)
+
+val cap_reg_index : (address_size, option(base_reg_idx), seg_reg_idx, string) -> base_reg_idx
+
+function cap_reg_index (addr_size, base_reg, seg_reg, access_kind) = {
+    if access_kind == ":X" then 16
+    else if addr_size == 16 then {
+       match seg_reg {
+         4 => 18, // CFS
+         5 => 19, // CGS
+         _ => match base_reg {
+           Some(reg) => reg,
+           // MOV A0-A3 may get here and should use DDC
+           None() => 17
+         }
+       }
+    } else 17
+}
+
+val cap_base_reg : (base_reg_idx) -> Capability
+
+function cap_base_reg (base_reg) = {
+    match base_reg {
+      16 => rip,
+      17 => ddc,
+      18 => cfs,
+      19 => cgs,
+      _ => read_gpr(check_range(0, 15, base_reg))
+    }
+}
+
+val cap_memory_permission_check : (Capability, string) -> option(string)
+
+function cap_memory_permission_check (cap_reg, access_kind) = {
+    if (access_kind == ":R") then {
+       if cap_reg.permit_load then {
+           None()
+       } else {
+           Some(":CAP-PERM-READ")
+       }
+    } else if (access_kind == ":W") then {
+       if cap_reg.permit_store then {
+           None()
+       } else {
+           Some(":CAP-PERM-WRITE")
+       }
+    } else if (access_kind == ":X") then {
+       if cap_reg.permit_execute then {
+           None()
+       } else {
+           Some(":CAP-PERM-EXECUTE")
+       }
+    } else Some(":INVALID-ACCESS-KIND")
+}
 
 val address_aligned_p : (sbits(48), {|1, 2, 4, 6, 8, 10, 16, 32, 64|}, bool) -> bool
 
 val check_linear_memory_access : (proc_mode, address_size, {|1, 2, 4, 6, 8, 10, 16|}, sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> option(string)
 
 function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, access_kind, check_alignment?, mem_ptr?) = {
-    if not_bool(not_bool(check_alignment?) | address_aligned_p(truncate(lin_addr, 48), nbytes, mem_ptr?)) then {
+    let cap = cap_base_reg (cap_reg_index(addr_size, base_reg, seg_reg, access_kind));
+    let cap_perm_result = cap_memory_permission_check(cap, access_kind);
+    if not_bool(cap.tag) then {
+        Some(":INVALID-CAP")
+    } else if isCapSealed(cap) then {
+        Some(":SEALED-CAP")
+    } else if is_some(cap_perm_result) then {
+        cap_perm_result
+    } else if not_bool(inCapBounds(cap, lin_addr, nbytes)) then {
+        Some(":CAP-BOUNDS")
+    } else if not_bool(not_bool(check_alignment?) | address_aligned_p(truncate(lin_addr, 48), nbytes, mem_ptr?)) then {
         Some(":UNALIGNED-LINEAR-ADDRESS")
     } else {
         None()
@@ -29,13 +94,47 @@ function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, bas
 val select_base_register : (proc_mode, bits(8), bits(3), bits(2), sib) -> option(base_reg_idx)
 
 function select_base_register(proc_mode, rex_byte, r_m, mod_var, sib) = {
-    // TODO
-    None()
+    if in_64bit_mode(proc_mode) then {
+       // Handle RIP-relative addresses
+       if mod_var == 0b00 & r_m == 0b101 then Some(16)
+       else if r_m == 0b100 then {
+           // SIB addresses using absolute displacement always use DDC
+           if mod_var == 0b00 & sib[base] == 0b101 then Some(17)
+           // Use SIB base register
+           else Some(unsigned(reg_index (sib[base], rex_byte, 0b00)))
+       // Use R/M base register
+       } else Some(unsigned(reg_index (r_m, rex_byte, 0b00)))
+    } else None()
 }
 
 val select_address_size : (proc_mode, option(prefixes)) -> address_size
 
 function select_address_size (proc_mode, prefixes) = {
+    let cappfx? : bool = match prefixes {
+         Some(prefixes) => 0x07 == prefixes[adr],
+         None() => false
+    };
+    let p4? : bool = match prefixes {
+         Some(prefixes) => 0x67 == prefixes[adr],
+         None() => false
+    };
+    if in_capability_mode(proc_mode) then {
+        if cappfx? then 8 else 16
+    } else if in_64bit_mode(proc_mode) then {
+        if cappfx? then 16
+        else if p4? then 4 else 8
+    } else {
+        let cs_attr : bits(16) = seg_hidden_attrs[1];
+        let cs_d : bits(1) = Mk_code_segment_descriptor_attributesbits(cs_attr)[d];
+        if cs_d == 0b1 then {
+            if p4? then 2 else 4
+        } else if p4? then 4 else 2
+    }
+}
+
+val select_moffset_size : (proc_mode, option(prefixes)) -> moffset_size
+
+function select_moffset_size (proc_mode, prefixes) = {
     let p4? : bool = match prefixes {
          Some(prefixes) => 0x67 == prefixes[adr],
          None() => false
@@ -62,12 +161,20 @@ function select_segment_register (proc_mode, prefixes, mod_var, r_m, sib) = {
       100 => 4,
       101 => 5,
       _ => {
-          let addr_size : {|2, 4, 8|} = select_address_size(proc_mode, Some(prefixes));
+          let addr_size : {|2, 4, 8, 16|} = select_address_size(proc_mode, Some(prefixes));
           if addr_size == 2 then {
               if not_bool(mod_var == 0b11) & (r_m == 0b010 | r_m == 0b011) then 2 else 3
           } else if (mod_var == 0b01 | mod_var == 0b10) & r_m == 0b101 | not_bool(mod_var == 0b11) & r_m == 0b100 & sib[base] == 0b100 then 2 else 3
       }
     }
+}
+
+val la_to_va : (address_size, string, sbits(64)) -> sbits(64)
+
+function la_to_va (addr_size, access_kind, lin_addr) = {
+    if addr_size == 16 | access_kind == ":X" then lin_addr
+    // DDC offsetting when not using capability-aware addressing
+    else lin_addr + ddc.address
 }
 
 val load_bytes_from_ea : forall 'nbytes, 'nbytes in {1, 2, 4, 6, 8, 10, 16}.
@@ -79,16 +186,17 @@ function load_bytes_from_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, s
         (Some(":EXECUTE-ONLY-CODE-SEGMENT"), sail_zeros(8 * nbytes))
     } else {
         let (flg, lin_addr) : (option(string), sbits(64)) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
+        let vaddr = la_to_va (addr_size, r_x, lin_addr);
         if is_some(flg) then {
             (flg, sail_zeros(8 * nbytes))
         } else {
-            match check_linear_memory_access(proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?) {
+            match check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?) {
                 Some(error) => (Some(error), sail_zeros(8 * nbytes)),
                 None() => {
                     // Use rb directly instead of rml_size;  it returns a
                     // bitvector of the right width and performs the same
                     // checks for canonical addresses that rml_size does.
-                    rb(nbytes, lin_addr, r_x)
+                    rb(nbytes, vaddr, r_x)
                 }
             }
         }
@@ -104,13 +212,14 @@ function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, se
         Some(":NON-WRITABLE-SEGMENT")
     } else {
         let (flg, lin_addr) : (option(string), sbits(64)) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
+        let vaddr = la_to_va (addr_size, ":W", lin_addr);
         if is_some(flg) then {
             flg
         } else {
-            match check_linear_memory_access(proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?) {
+            match check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?) {
                 Some(error) => Some(error),
                 None() => {
-                    wb(nbytes, lin_addr, ":W", data)
+                    wb(nbytes, vaddr, ":W", data)
                 }
             }
         }
