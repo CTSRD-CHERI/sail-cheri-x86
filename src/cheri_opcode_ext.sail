@@ -4,6 +4,7 @@ $define __X86_OPCODE_EXT
 $include "../sail-x86/model/structures.sail"
 
 enum proc_mode = {
+  Mode_Capability,
   Mode_64bit,
   Mode_Compatibility,
   Mode_Protected,
@@ -11,7 +12,12 @@ enum proc_mode = {
   Mode_SMM
 }
 
+function in_capability_mode(proc_mode) : proc_mode -> bool = match proc_mode {
+    Mode_Capability => true,
+    _ => false
+}
 function in_64bit_mode(proc_mode) : proc_mode -> bool = match proc_mode {
+    Mode_Capability => true,
     Mode_64bit => true,
     _ => false
 }
@@ -39,7 +45,9 @@ function in_system_management_mode(proc_mode) : proc_mode -> bool = match proc_m
 val x86_operation_mode : unit -> proc_mode
 
 function x86_operation_mode () = {
-    if n64_bit_modep() then Mode_64bit else Mode_Compatibility
+    if n64_bit_modep() then {
+        if rip.flag_cap_mode then Mode_Capability else Mode_64bit
+    } else Mode_Compatibility
 }
 
 bitfield prefixes : bits(52) =
@@ -47,11 +55,26 @@ bitfield prefixes : bits(52) =
 
 val is_ext_prefix_byte : (proc_mode, prefixes, bits(8), range(0, 15), bits(8)) -> bool
 
-function is_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = false
+function is_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = {
+    if in_64bit_mode(proc_mode) | in_capability_mode(proc_mode) then {
+        match byte {
+          0x06 => true,
+          0x07 => true,
+          _ => false
+	}
+    } else false
+}
 
 val process_ext_prefix_byte : (proc_mode, prefixes, bits(8), range(0, 15), bits(8)) -> (option(string), prefixes, bits(8), bool)
 
-function process_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = (None(), prefixes, rex_byte, false)
+function process_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = {
+    assert(in_64bit_mode(proc_mode) | in_capability_mode(proc_mode));
+    match byte {
+      0x06 => (None(), [prefixes with opr = byte], rex_byte, true),
+      0x07 => (None(), [prefixes with adr = byte], rex_byte, true),
+      _ => (None(), prefixes, rex_byte, false)
+    }
+}
 
 val ext_one_byte_opcode_execute : (proc_mode, sbits(48), sbits(48), prefixes, bits(8), bits(8), modr_m, sib) -> unit
 
