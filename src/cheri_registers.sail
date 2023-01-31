@@ -1,4 +1,6 @@
 register ddc: Capability
+register cfs: Capability
+register cgs: Capability
 
 val __InitConfig : unit -> unit
 function __InitConfig () = {
@@ -22,4 +24,8 @@ function __InitConfig () = {
     // CIP and DDC default to an almighty capability
     rip = default_cap;
     ddc = default_cap;
+
+    // CFS and CGS default to a null capability
+    cfs = null_cap;
+    cgs = null_cap;
 }

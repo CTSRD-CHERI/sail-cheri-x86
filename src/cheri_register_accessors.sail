@@ -27,11 +27,21 @@ function write_rip(value) = {
 type msr_index = range(0, 6)
 
 val read_msr : msr_index -> bits(64)
-function read_msr(idx) = msrs[idx]
+function read_msr(idx) = {
+    match idx {
+      1 => regval_from_reg(cfs),
+      2 => regval_from_reg(cgs),
+      _ => msrs[idx]
+    }
+}
 
 val write_msr : (msr_index, bits(64)) -> unit
 function write_msr(idx, value) = {
-    msrs[idx] = value
+    match idx {
+      1 => cfs = regval_into_reg(value),
+      2 => cgs = regval_into_reg(value),
+      _ => msrs[idx] = value
+    }
 }
 
 $endif
