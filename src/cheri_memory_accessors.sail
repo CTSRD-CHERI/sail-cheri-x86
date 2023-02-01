@@ -5,8 +5,6 @@ $include "../sail-x86/model/structures.sail"
 $include "../sail-x86/model/segmentation_structures.sail"
 $include "../sail-x86/model/linear_memory.sail"
 $include "../sail-x86/model/segmentation.sail"
-// For prefixes bitfield definition:
-$include "../sail-x86/model/opcode_ext.sail"
 
 type address_size = {|2, 4, 8, 16|}
 type moffset_size = {|2, 4, 8|}
