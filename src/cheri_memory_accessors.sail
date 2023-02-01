@@ -41,9 +41,9 @@ function cap_base_reg (base_reg) = {
     }
 }
 
-val cap_memory_permission_check : (Capability, string) -> option(string)
+val cap_memory_permission_check : (Capability, string, bool) -> option(string)
 
-function cap_memory_permission_check (cap_reg, access_kind) = {
+function cap_memory_permission_check (cap_reg, access_kind, check_sc?) = {
     if (access_kind == ":R") then {
        if cap_reg.permit_load then {
            None()
@@ -52,7 +52,11 @@ function cap_memory_permission_check (cap_reg, access_kind) = {
        }
     } else if (access_kind == ":W") then {
        if cap_reg.permit_store then {
-           None()
+           if check_sc? & not_bool(cap_reg.permit_store_cap) then {
+               Some(":CAP-PERM-WRITE-CAP")
+           } else {
+               None()
+           }
        } else {
            Some(":CAP-PERM-WRITE")
        }
@@ -65,23 +69,23 @@ function cap_memory_permission_check (cap_reg, access_kind) = {
     } else Some(":INVALID-ACCESS-KIND")
 }
 
-val check_linear_memory_access : (proc_mode, address_size, {|1, 2, 4, 6, 8, 10, 16|}, sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> option(string)
+val check_linear_memory_access : (proc_mode, address_size, {|1, 2, 4, 6, 8, 10, 16|}, sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool, bool) -> (option(string), bool)
 
-function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, access_kind, check_alignment?, mem_ptr?) = {
+function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, access_kind, check_alignment?, mem_ptr?, check_sc?) = {
     let cap = cap_base_reg (cap_reg_index(addr_size, base_reg, seg_reg, access_kind));
-    let cap_perm_result = cap_memory_permission_check(cap, access_kind);
+    let cap_perm_result = cap_memory_permission_check(cap, access_kind, check_sc?);
     if not_bool(cap.tag) then {
-        Some(":INVALID-CAP")
+        (Some(":INVALID-CAP"), false)
     } else if isCapSealed(cap) then {
-        Some(":SEALED-CAP")
+        (Some(":SEALED-CAP"), false)
     } else if is_some(cap_perm_result) then {
-        cap_perm_result
+        (cap_perm_result, false)
     } else if not_bool(inCapBounds(cap, lin_addr, nbytes)) then {
-        Some(":CAP-BOUNDS")
+        (Some(":CAP-BOUNDS"), false)
     } else if not_bool(not_bool(check_alignment?) | address_aligned_p(truncate(lin_addr, 48), nbytes, mem_ptr?)) then {
-        Some(":UNALIGNED-LINEAR-ADDRESS")
+        (Some(":UNALIGNED-LINEAR-ADDRESS"), false)
     } else {
-        None()
+        (None(), cap.permit_load_cap)
     }
 }
 
@@ -186,14 +190,14 @@ function load_bytes_from_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, s
         if is_some(flg) then {
             (flg, sail_zeros(8 * nbytes))
         } else {
-            match check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?) {
-                Some(error) => (Some(error), sail_zeros(8 * nbytes)),
-                None() => {
-                    // Use rb directly instead of rml_size;  it returns a
-                    // bitvector of the right width and performs the same
-                    // checks for canonical addresses that rml_size does.
-                    rb(nbytes, vaddr, r_x)
-                }
+            let (flg, load_cap?) : (option(string), bool) = check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?, false);
+            if is_some(flg) then {
+                (flg, sail_zeros(8 * nbytes))
+            } else {
+                // Use rb directly instead of rml_size;  it returns a
+                // bitvector of the right width and performs the same
+                // checks for canonical addresses that rml_size does.
+                rb(nbytes, vaddr, r_x)
             }
         }
     }
@@ -212,11 +216,11 @@ function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, se
         if is_some(flg) then {
             flg
         } else {
-            match check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?) {
-                Some(error) => Some(error),
-                None() => {
-                    wb(nbytes, vaddr, ":W", data)
-                }
+            let (flg, load_cap?) : (option(string), bool) = check_linear_memory_access(proc_mode, addr_size, nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?, false);
+            if is_some(flg) then {
+                flg
+            } else {
+                wb(nbytes, vaddr, ":W", data)
             }
         }
     }
@@ -235,6 +239,56 @@ function observe_mem_write (addr, len) = {
     let tag_vaddr2 = addr_to_tag_addr(vaddr + len - 1);
     if tag_vaddr2 != tag_vaddr2 then {
         write_tag_lin_addr(addr + len - 1, false);
+    }
+}
+
+val rmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
+  seg_reg_idx, bool) -> (option(string), Capability)
+
+function rmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, mem_ptr?) = {
+    assert(in_64bit_mode(proc_mode));
+    let (flg, lin_addr) : (option(string), sbits(64)) =
+      ea_to_la(proc_mode, eff_addr, seg_reg, 16);
+    let vaddr = la_to_va (addr_size, ":R", lin_addr);
+    if is_some(flg) then {
+        (flg, null_cap)
+    } else {
+        let (flg, load_cap?) : (option(string), bool) =
+	  check_linear_memory_access(proc_mode, addr_size, 16, vaddr,
+	    base_reg, seg_reg, ":R", true, mem_ptr?, false);
+        if is_some(flg) then {
+            (flg, null_cap)
+        } else {
+            let (flg, cap) = rcap(vaddr);
+            if is_none(flg) & not_bool(load_cap?) then {
+                (None(), {cap with tag = false})
+            } else {
+                (flg, cap)
+            }
+        }
+    }
+}
+
+val wmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
+  seg_reg_idx, Capability, bool) -> option(string)
+
+function wmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, data,
+  mem_ptr?) = {
+    assert(in_64bit_mode(proc_mode));
+    let (flg, lin_addr) : (option(string), sbits(64)) =
+      ea_to_la(proc_mode, eff_addr, seg_reg, 16);
+    let vaddr = la_to_va (addr_size, ":W", lin_addr);
+    if is_some(flg) then {
+        flg
+    } else {
+        let (flg, load_cap?) : (option(string), bool) =
+	  check_linear_memory_access(proc_mode, addr_size, 16, vaddr,
+	    base_reg, seg_reg, ":W", true, mem_ptr?, data.tag);
+        if is_some(flg) then {
+            flg
+        } else {
+            wcap (vaddr, data)
+        }
     }
 }
 
