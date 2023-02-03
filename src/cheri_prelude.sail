@@ -217,3 +217,7 @@ function encCapToBits(cap) : EncCapability -> CapBits =
   cap.T @
   cap.B @
   cap.address
+
+/* Direct access to memory tags */
+val MEMr_tag = "read_tag_bool"  : bits(64) -> bool effect { rmemt }
+val MEMw_tag = "write_tag_bool" : (bits(64) , bool) -> unit effect { wmvt }

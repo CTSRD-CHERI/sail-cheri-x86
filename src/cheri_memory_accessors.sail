@@ -65,8 +65,6 @@ function cap_memory_permission_check (cap_reg, access_kind) = {
     } else Some(":INVALID-ACCESS-KIND")
 }
 
-val address_aligned_p : (sbits(48), {|1, 2, 4, 6, 8, 10, 16, 32, 64|}, bool) -> bool
-
 val check_linear_memory_access : (proc_mode, address_size, {|1, 2, 4, 6, 8, 10, 16|}, sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> option(string)
 
 function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, access_kind, check_alignment?, mem_ptr?) = {

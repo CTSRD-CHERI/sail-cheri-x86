@@ -34,4 +34,20 @@ function log_memory_write(addr, value) = {
 	print_endline(bits_str(read_rip()) + ": W " + bits_str(addr) + " " + dec_str(1) + " " + bits_str(value))
 }
 
+function log_memcap_read(addr, value) = {
+	print_endline(bits_str(read_rip()) + ": R " + bits_str(addr) + " " + dec_str(cap_size) + " " + bits_str(value))
+}
+
+function log_memcap_write(addr, value) = {
+	print_endline(bits_str(read_rip()) + ": W " + bits_str(addr) + " " + dec_str(cap_size) + " " + bits_str(value))
+}
+
+function log_memtag_read(addr, tag) = {
+	print_endline(bits_str(read_rip()) + ": R tag[" + bits_str(addr) + "] ->  " + (if tag then "1" else "0"))
+}
+
+function log_memtag_write(addr, tag) = {
+	print_endline(bits_str(read_rip()) + ": W tag[" + bits_str(addr) + "] <-  " + (if tag then "1" else "0"))
+}
+
 $endif

@@ -17,6 +17,7 @@ PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_prelude.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_types.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_cap_common.sail \
+		$(SAIL_CHERI_MODEL_DIR)/cheri_memory_tags.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_register_types.sail \
 		$(SAIL_X86_MODEL_DIR)/registers.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_registers.sail \
