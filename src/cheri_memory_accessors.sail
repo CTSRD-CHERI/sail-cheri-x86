@@ -222,6 +222,20 @@ function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, se
     }
 }
 
-function observe_mem_write (addr, len) = ()
+/* Clear tags for non-capability memory writes. */
+
+function observe_mem_write (addr, len) = {
+    assert(len <= cap_size);
+
+    write_tag_lin_addr(addr, false);
+
+    /* If the write spans a second capability, clear that tag as well. */
+    let vaddr = sail_mask_signed(52, addr);
+    let tag_vaddr = addr_to_tag_addr(vaddr);
+    let tag_vaddr2 = addr_to_tag_addr(vaddr + len - 1);
+    if tag_vaddr2 != tag_vaddr2 then {
+        write_tag_lin_addr(addr + len - 1, false);
+    }
+}
 
 $endif
