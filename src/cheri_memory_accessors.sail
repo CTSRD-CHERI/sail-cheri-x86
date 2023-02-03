@@ -224,4 +224,6 @@ function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, se
     }
 }
 
+function observe_mem_write (addr, len) = ()
+
 $endif
