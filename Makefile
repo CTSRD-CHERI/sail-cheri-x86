@@ -47,7 +47,7 @@ x86_emulator.c: $(ALL_SAILS)
 	$(SAIL) -c -memo_z3 $(SAIL_FLAGS) $(ALL_SAILS) > x86_emulator.c.temp
 	mv x86_emulator.c.temp x86_emulator.c
 
-x86_emulator: x86_emulator.c
+x86_emulator: x86_emulator.c $(SAIL_DIR)/lib/*.c
 	$(CC) -O2 -DHAVE_SETCONFIG x86_emulator.c $(SAIL_DIR)/lib/*.c $(GMP_FLAGS) $(GMP_LIBS) $(ZLIB_FLAGS) $(ZLIB_LIBS) -I $(SAIL_DIR)/lib/ -o x86_emulator
 
 interactive:
