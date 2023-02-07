@@ -15,6 +15,7 @@ function __InitConfig () = {
     rbp = null_cap;
     r8 = null_cap;
     r9 = null_cap;
+    r10 = null_cap;
     r11 = null_cap;
     r12 = null_cap;
     r13 = null_cap;
