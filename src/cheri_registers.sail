@@ -30,3 +30,10 @@ function __InitConfig () = {
     cfs = null_cap;
     cgs = null_cap;
 }
+
+function clause __SetConfig("cax_test", value) = {
+    let newBase : CapAddrBits = sail_zero_extend(0x8000, 64);
+    let newTop : CapLenBits = 0b0 @ add_bits_int(newBase, unsigned(0x1000));
+    let (_, cap) = setCapBounds(default_cap, newBase, newTop);
+    write_gpr(0, {cap with permit_execute = false});
+}
