@@ -80,8 +80,6 @@ val ext_one_byte_opcode_execute : (proc_mode, sbits(48), sbits(48), prefixes, bi
 
 val ext_two_byte_opcode_execute : (proc_mode, sbits(48), sbits(48), prefixes, bits(8), bits(8), bits(8), modr_m, sib) -> bool
 
-function ext_two_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, mandatory_prefix, rex_byte, opcode, modr_m, sib) = false
-
 val ext_vex_0f_execute : (proc_mode, sbits(48), sbits(48), prefixes, bits(8), vex_prefixes, bits(8), modr_m, sib) -> bool
 
 function ext_vex_0f_execute(proc_mode, start_rip, temp_rip, prefixes, rex_byte, vex_prefixes, opcode, modr_m, sib) = false
