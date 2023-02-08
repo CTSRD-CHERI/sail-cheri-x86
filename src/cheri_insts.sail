@@ -184,6 +184,14 @@ function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, r
 	      }
 	  }
       },
+      m if unsigned(m) >= unsigned(0xa0) & unsigned(m) <= unsigned(0xa3) => {
+          if in_capability_mode(proc_mode) | 0x06 == prefixes[opr] |
+	    0x07 == prefixes[adr] then {
+	      throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	  } else {
+	      false
+          }
+      },
       _ => {
           if 0x06 == prefixes[opr] then {
               throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
