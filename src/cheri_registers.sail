@@ -2,6 +2,28 @@ register ddc: Capability
 register cfs: Capability
 register cgs: Capability
 
+// Additional capability registers
+val log_capr_write : range(0, 2) -> unit
+
+val read_capr : range(0, 2) -> Capability
+function read_capr(idx) = {
+    match idx {
+        0 => ddc,
+        1 => cfs,
+        2 => cgs
+    }
+}
+
+val write_capr : (range(0, 2), Capability) -> unit
+function write_capr(idx, value) = {
+    match idx {
+        0 => ddc = value,
+        1 => cfs = value,
+        2 => cgs = value
+    };
+    if log_register_writes then log_capr_write(idx)
+}
+
 val __InitConfig : unit -> unit
 function __InitConfig () = {
     // Default GPRs to a null capability

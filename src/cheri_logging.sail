@@ -47,6 +47,14 @@ function log_gpr_write(idx) = {
     }
 }
 
+function log_capr_write(idx) = {
+    match idx {
+        0 => print_endline("ddc = " + capToString(ddc)),
+        1 => print_endline("cfs = " + capToString(cfs)),
+        2 => print_endline("cgs = " + capToString(cgs))
+    }
+}
+
 function log_rflags_write() = {
     print_bits("rflags = ", rflags.bits);
 }
