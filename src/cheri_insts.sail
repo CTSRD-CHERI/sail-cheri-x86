@@ -106,6 +106,9 @@ function x86_one_byte_nop (proc_mode, start_rip, temp_rip, prefixes, rex_byte, o
 }
 
 function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib) = {
+    if 0x06 == prefixes[opr] & logbitp(3, rex_byte) then {
+        throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+    };
     match opcode {
       0x89 => {
           if 0x06 != prefixes[opr] then false else {
