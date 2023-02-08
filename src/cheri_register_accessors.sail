@@ -22,6 +22,7 @@ function write_rip(value) = {
     /* A near branch might very well become unrepresentable, so don't
        assert() success here. */
     rip = newrip;
+    if log_register_writes then log_rip_write()
 }
 
 type msr_index = range(0, 6)
