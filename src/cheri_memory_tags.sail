@@ -56,8 +56,6 @@
 /*=======================================================================================*/
 
 /* Logging hooks */
-val log_memcap_read : (bits(52), CapBits) -> unit
-val log_memcap_write : (bits(52), CapBits) -> unit
 val log_memtag_read : (bits(52), bool) -> unit
 val log_memtag_write : (bits(52), bool) -> unit
 
@@ -98,7 +96,7 @@ function rcap (addr) = {
       };
     let cap_bits : CapBits = __read_mem(Read_plain, 64,
       sail_mask(64, phys_addr), cap_size);
-    log_memcap_read(phys_addr, cap_bits);
+    log_memory_read(phys_addr, cap_size, cap_bits);
     let tag_addr = addr_to_tag_addr(phys_addr);
     let tag = MEMr_tag(sail_zero_extend(tag_addr, 64));
     log_memtag_read(tag_addr_to_addr(tag_addr), tag);
@@ -123,7 +121,7 @@ function wcap (addr, cap) = {
     __write_mem_ea(Write_plain, 64, sail_mask(64, phys_addr), cap_size);
     let dummy = __write_mem(Write_plain, 64, sail_mask(64, phys_addr),
       cap_size, cap_bits);
-    log_memcap_write(phys_addr, cap_bits);
+    log_memory_write(phys_addr, cap_size, cap_bits);
     let tag_addr = addr_to_tag_addr(phys_addr);
     MEMw_tag(sail_zero_extend(tag_addr, 64), cap.tag);
     log_memtag_write(tag_addr_to_addr(tag_addr), cap.tag);
