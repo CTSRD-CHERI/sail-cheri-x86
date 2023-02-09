@@ -32,6 +32,13 @@ ALL_SAILS=$(PRELUDE_SAILS) $(MODEL_SAILS) $(MAIN_SAIL)
 
 CC?=gcc
 
+GMP_FLAGS = $(shell pkg-config --cflags gmp)
+# N.B. GMP does not have pkg-config metadata on Ubuntu 18.04 so default to -lgmp
+GMP_LIBS := $(shell pkg-config --libs gmp || echo -lgmp)
+
+ZLIB_FLAGS = $(shell pkg-config --cflags zlib)
+ZLIB_LIBS = $(shell pkg-config --libs zlib)
+
 all: x86_emulator
 
 .PHONY: all clean interactive
@@ -41,7 +48,7 @@ x86_emulator.c: $(ALL_SAILS)
 	mv x86_emulator.c.temp x86_emulator.c
 
 x86_emulator: x86_emulator.c
-	$(CC) -O2 -DHAVE_SETCONFIG x86_emulator.c $(SAIL_DIR)/lib/*.c -lgmp -lz -I $(SAIL_DIR)/lib/ -o x86_emulator
+	$(CC) -O2 -DHAVE_SETCONFIG x86_emulator.c $(SAIL_DIR)/lib/*.c $(GMP_FLAGS) $(GMP_LIBS) $(ZLIB_FLAGS) $(ZLIB_LIBS) -I $(SAIL_DIR)/lib/ -o x86_emulator
 
 interactive:
 	$(SAIL) -i -memo_z3 $(SAIL_FLAGS) $(ALL_SAILS)
