@@ -28,8 +28,10 @@ PRELUDE_SAILS = $(SAIL_X86_MODEL_DIR)/prelude.sail \
 		$(SAIL_X86_MODEL_DIR)/config.sail \
 		$(SAIL_CHERI_MODEL_DIR)/cheri_logging.sail
 MODEL_SAILS=$(SAIL_X86_MODEL_DIR)/step.sail \
-	    $(SAIL_CHERI_MODEL_DIR)/cheri_insts.sail \
-	    $(SAIL_CHERI_MODEL_DIR)/cheri_insts_two_byte.sail
+	    $(SAIL_CHERI_MODEL_DIR)/cheri_decoding_and_spec_utils.sail \
+	    $(SAIL_CHERI_MODEL_DIR)/cheri_move.sail \
+	    $(SAIL_CHERI_MODEL_DIR)/cheri_one_byte_opcodes_dispatch.sail \
+	    $(SAIL_CHERI_MODEL_DIR)/cheri_two_byte_opcodes_dispatch.sail
 MAIN_SAIL=$(SAIL_X86_MODEL_DIR)/main.sail
 ALL_SAILS=$(PRELUDE_SAILS) $(MODEL_SAILS) $(MAIN_SAIL)
 
