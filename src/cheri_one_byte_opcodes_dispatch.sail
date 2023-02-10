@@ -16,6 +16,215 @@ function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, r
         throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
     };
     match opcode {
+      0x01 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* ADD r/mc,r64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_e_g(0, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x03 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* ADD rc,r/m64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_g_e(0, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x05 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* ADD CAX,imm32 */
+              if 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_cax_i(0, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x09 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* OR r/mc,r64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_e_g(1, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x0b => {
+          if 0x06 != prefixes[opr] then false else {
+              /* OR rc,r/m64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_g_e(1, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x0d => {
+          if 0x06 != prefixes[opr] then false else {
+              /* OR CAX,imm32 */
+              if 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_cax_i(1, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x21 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* AND r/mc,r64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_e_g(3, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x23 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* AND rc,r/m64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_g_e(3, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x25 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* AND CAX,imm32 */
+              if 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_cax_i(3, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x29 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* SUB r/mc,r64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_e_g(4, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x2b => {
+          if 0x06 != prefixes[opr] then false else {
+              /* SUB rc,r/m64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_g_e(4, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x2d => {
+          if 0x06 != prefixes[opr] then false else {
+              /* SUB CAX,imm32 */
+              if 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_cax_i(4, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x31 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* XOR r/mc,r64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_e_g(5, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x33 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* XOR rc,r/m64 */
+              if modr_m[mod] == 0b11 & 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_g_e(5, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x35 => {
+          if 0x06 != prefixes[opr] then false else {
+              /* XOR CAX,imm32 */
+              if 0xf0 == prefixes[lck] then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+                  x86_addc_subc_orc_andc_xorc_cax_i(5, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+		  true
+	      }
+	  }
+      },
+      0x81 => {
+          if 0x06 != prefixes[opr] then false else {
+              if 0xf0 == prefixes[lck] & modr_m[mod] == 0b11 then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+	          match modr_m[reg] {
+                    /* /0 ADD r/mc,imm32 */
+		    0b000 => x86_addc_subc_orc_andc_xorc_e_i(0, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /1 OR r/mc,imm32 */
+		    0b001 => x86_addc_subc_orc_andc_xorc_e_i(1, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /4 AND r/mc,imm32 */
+		    0b100 => x86_addc_subc_orc_andc_xorc_e_i(3, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /5 SUB r/mc,imm32 */
+		    0b101 => x86_addc_subc_orc_andc_xorc_e_i(4, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /6 XOR r/mc,imm32 */
+		    0b110 => x86_addc_subc_orc_andc_xorc_e_i(5, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+		    _ => throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+		  };
+		  true
+	      }
+	  }
+      },
+      0x83 => {
+          if 0x06 != prefixes[opr] then false else {
+              if 0xf0 == prefixes[lck] & modr_m[mod] == 0b11 then {
+	          throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+	      } else {
+	          match modr_m[reg] {
+                    /* /0 ADD r/mc,imm8 */
+		    0b000 => x86_addc_subc_orc_andc_xorc_e_i(0, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /1 OR r/mc,imm8 */
+		    0b001 => x86_addc_subc_orc_andc_xorc_e_i(1, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /4 AND r/mc,imm8 */
+		    0b100 => x86_addc_subc_orc_andc_xorc_e_i(3, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /5 SUB r/mc,imm8 */
+		    0b101 => x86_addc_subc_orc_andc_xorc_e_i(4, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+                    /* /6 XOR r/mc,imm8 */
+		    0b110 => x86_addc_subc_orc_andc_xorc_e_i(5, proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib),
+		    _ => throw(Emsg("A fault occurred.  X86-ILLEGAL-INSTRUCTION \"#UD Encountered!\""))
+		  };
+		  true
+	      }
+	  }
+      },
       0x89 => {
           if 0x06 != prefixes[opr] then false else {
               if 0xf0 == prefixes[lck] then {
