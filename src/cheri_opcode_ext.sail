@@ -65,14 +65,14 @@ function is_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = {
     } else false
 }
 
-val process_ext_prefix_byte : (proc_mode, prefixes, bits(8), range(0, 15), bits(8)) -> (option(string), prefixes, bits(8), bool)
+val process_ext_prefix_byte : (proc_mode, prefixes, bits(8), range(0, 15), bits(8)) -> (prefixes, bits(8), bool)
 
 function process_ext_prefix_byte(proc_mode, prefixes, rex_byte, cnt, byte) = {
     assert(in_64bit_mode(proc_mode) | in_capability_mode(proc_mode));
     match byte {
-      0x06 => (None(), [prefixes with opr = byte], rex_byte, true),
-      0x07 => (None(), [prefixes with adr = byte], rex_byte, true),
-      _ => (None(), prefixes, rex_byte, false)
+      0x06 => ([prefixes with opr = byte], rex_byte, true),
+      0x07 => ([prefixes with adr = byte], rex_byte, true),
+      _ => (prefixes, rex_byte, false)
     }
 }
 

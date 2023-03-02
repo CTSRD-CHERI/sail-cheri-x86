@@ -68,10 +68,10 @@ val write_tag_lin_addr : (bits(48), bool) -> unit
 
 function write_tag_lin_addr (lin_addr, tag) = {
     let phys_addr : bits(52) =
-      if app_view then sail_mask_signed(52, lin_addr) else {
-        let (flg, phys_addr) = ia32e_la_to_pa(lin_addr, ":W");
-        if is_some(flg) then return ();
-	phys_addr
+      if app_view then {
+        sail_mask_signed(52, lin_addr)
+      } else {
+        ia32e_la_to_pa(lin_addr, ":W")
       };
     let tag_addr = addr_to_tag_addr(phys_addr);
     MEMw_tag(sail_zero_extend(tag_addr, 64), tag);
@@ -80,19 +80,19 @@ function write_tag_lin_addr (lin_addr, tag) = {
 
 val address_aligned_p : (sbits(48), {|1, 2, 4, 6, 8, 10, 16, 32, 64|}, bool) -> bool
 
-val rcap : (sbits(64)) -> (option(string), Capability)
+val rcap : (sbits(64)) -> Capability
 
 function rcap (addr) = {
     if not_bool(canonical_address_p(signed(addr))) then
-        return (Some("rcap: non-canonical address"), null_cap);
+        x86_model_error("rcap: non-canonical address");
     let lin_addr : bits(48) = sail_mask_signed(48, addr);
     if not_bool(address_aligned_p(lin_addr, cap_size, false)) then
-        return (Some("rcap: misaligned address"), null_cap);
+        x86_model_error("rcap: misaligned address");
     let phys_addr : bits(52) =
-      if app_view then sail_mask_signed(52, lin_addr) else {
-        let (flg, phys_addr) = ia32e_la_to_pa(lin_addr, ":R");
-        if is_some(flg) then return (flg, null_cap);
-        phys_addr
+      if app_view then {
+        sail_mask_signed(52, lin_addr)
+      } else {
+        ia32e_la_to_pa(lin_addr, ":R")
       };
     let cap_bits : CapBits = __read_mem(Read_plain, 64,
       sail_mask(64, phys_addr), cap_size);
@@ -100,22 +100,22 @@ function rcap (addr) = {
     let tag_addr = addr_to_tag_addr(phys_addr);
     let tag = MEMr_tag(sail_zero_extend(tag_addr, 64));
     log_memtag_read(tag_addr_to_addr(tag_addr), tag);
-    (None(), memBitsToCapability(tag, cap_bits))
+    memBitsToCapability(tag, cap_bits)
 }
 
-val wcap : (sbits(64), Capability) -> option(string)
+val wcap : (sbits(64), Capability) -> unit
 
 function wcap (addr, cap) = {
     if not_bool(canonical_address_p(signed(addr))) then
-        return Some("wcap: non-canonical address");
+        x86_model_error("wcap: non-canonical address");
     let lin_addr : bits(48) = sail_mask_signed(48, addr);
     if not_bool(address_aligned_p(lin_addr, cap_size, false)) then
-        return Some("wcap: misaligned address");
+        x86_model_error("wcap: misaligned address");
     let phys_addr : bits(52) =
-      if app_view then sail_mask_signed(52, lin_addr) else {
-        let (flg, phys_addr) = ia32e_la_to_pa(lin_addr, ":W");
-        if is_some(flg) then return flg;
-        phys_addr
+      if app_view then {
+        sail_mask_signed(52, lin_addr)
+      } else {
+        ia32e_la_to_pa(lin_addr, ":W")
       };
     let cap_bits = capToMemBits(cap);
     __write_mem_ea(Write_plain, 64, sail_mask(64, phys_addr), cap_size);
@@ -125,5 +125,4 @@ function wcap (addr, cap) = {
     let tag_addr = addr_to_tag_addr(phys_addr);
     MEMw_tag(sail_zero_extend(tag_addr, 64), cap.tag);
     log_memtag_write(tag_addr_to_addr(tag_addr), cap.tag);
-    None()
 }

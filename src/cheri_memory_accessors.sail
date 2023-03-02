@@ -45,22 +45,22 @@ val check_linear_memory_access : (proc_mode, address_size, {|1, 2, 4, 6, 8, 10, 
 
 function check_linear_memory_access (proc_mode, addr_size, nbytes, lin_addr, base_reg, seg_reg, access_kind, check_alignment?, mem_ptr?, check_sc?) = {
     let cap = cap_base_reg (cap_reg_index(addr_size, base_reg, seg_reg, access_kind));
-    if not_bool(cap.tag) then throw(Emsg("#CP:INVALID-CAP"));
-    if isCapSealed(cap) then throw(Emsg("#CP:SEALED-CAP"));
+    if not_bool(cap.tag) then x86_fault("#CP:INVALID-CAP");
+    if isCapSealed(cap) then x86_fault("#CP:SEALED-CAP");
     if access_kind == ":R" then {
-        if not_bool(cap.permit_load) then throw(Emsg("#CP:CAP-PERM-READ"));
+        if not_bool(cap.permit_load) then x86_fault("#CP:CAP-PERM-READ");
     } else if access_kind == ":W" then {
-        if not_bool(cap.permit_store) then throw(Emsg("#CP:CAP-PERM-WRITE"));
+        if not_bool(cap.permit_store) then x86_fault("#CP:CAP-PERM-WRITE");
         if check_sc? & not_bool(cap.permit_store_cap) then
-	    throw(Emsg("#CP:CAP-PERM-WRITE-CAP"));
+	    x86_fault("#CP:CAP-PERM-WRITE-CAP");
     } else if access_kind == ":X" then {
         if not_bool(cap.permit_execute) then
-	    throw(Emsg("#CP:CAP-PERM-EXECUTE"));
+	    x86_fault("#CP:CAP-PERM-EXECUTE");
     };
     if not_bool(inCapBounds(cap, lin_addr, nbytes)) then
-        throw(Emsg("#CP:CAP-BOUNDS"));
+        x86_fault("#CP:CAP-BOUNDS");
     if not_bool(not_bool(check_alignment?) | address_aligned_p(truncate(lin_addr, 48), nbytes, mem_ptr?)) then
-        throw(Emsg("#AC:UNALIGNED-LINEAR-ADDRESS"));
+        x86_fault("#AC:UNALIGNED-LINEAR-ADDRESS");
     cap.permit_load_cap
 }
 
@@ -153,47 +153,39 @@ function la_to_va (addr_size, access_kind, lin_addr) = {
 }
 
 val load_bytes_from_ea : forall 'nbytes, 'nbytes in {1, 2, 4, 6, 8, 10, 16}.
-  (proc_mode, address_size, int('nbytes), sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> (option(string), bits(8 * 'nbytes))
+  (proc_mode, address_size, int('nbytes), sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> bits(8 * 'nbytes)
 
 function load_bytes_from_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?) = {
     let cs_attrs = Mk_code_segment_descriptor_attributesbits(seg_hidden_attrs[1]);
     if not_bool(in_64bit_mode(proc_mode)) & seg_reg == 1 & r_x == ":R" & cs_attrs[r] == 0b0 then {
-        (Some(":EXECUTE-ONLY-CODE-SEGMENT"), sail_zeros(8 * nbytes))
+        x86_fault(":EXECUTE-ONLY-CODE-SEGMENT")
     } else {
-        let (flg, lin_addr) : (option(string), sbits(64)) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
+        let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
         let vaddr = la_to_va (addr_size, r_x, lin_addr);
-        if is_some(flg) then {
-            (flg, sail_zeros(8 * nbytes))
-        } else {
-            let load_cap? = check_linear_memory_access(proc_mode, addr_size,
-	      nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?,
-	      false);
-            // Use rb directly instead of rml_size;  it returns a
-            // bitvector of the right width and performs the same
-            // checks for canonical addresses that rml_size does.
-            rb(nbytes, vaddr, r_x)
-        }
+        let load_cap? = check_linear_memory_access(proc_mode, addr_size,
+	  nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?,
+	  false);
+        // Use rb directly instead of rml_size;  it returns a
+        // bitvector of the right width and performs the same
+        // checks for canonical addresses that rml_size does.
+        rb(nbytes, vaddr, r_x)
     }
 }
 
 val store_bytes_to_ea : forall 'nbytes, 'nbytes in {1, 2, 4, 6, 8, 10, 16}.
-  (proc_mode, address_size, int('nbytes), sbits(64), option(base_reg_idx), seg_reg_idx, bits(8 * 'nbytes), bool, bool) -> option(string)
+  (proc_mode, address_size, int('nbytes), sbits(64), option(base_reg_idx), seg_reg_idx, bits(8 * 'nbytes), bool, bool) -> unit
 
 function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, seg_reg, data, check_alignment?, mem_ptr?) = {
     let seg_attrs = Mk_data_segment_descriptor_attributesbits(seg_hidden_attrs[seg_reg]);
     if not_bool(in_64bit_mode(proc_mode)) & (seg_reg == 1 | seg_attrs[w] == 0b0) then {
-        Some(":NON-WRITABLE-SEGMENT")
+        x86_fault(":NON-WRITABLE-SEGMENT")
     } else {
-        let (flg, lin_addr) : (option(string), sbits(64)) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
+        let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
         let vaddr = la_to_va (addr_size, ":W", lin_addr);
-        if is_some(flg) then {
-            flg
-        } else {
-            let load_cap? = check_linear_memory_access(proc_mode, addr_size,
-	      nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?,
-	      mem_ptr?, false);
-            wb(nbytes, vaddr, ":W", data)
-        }
+        let load_cap? = check_linear_memory_access(proc_mode, addr_size,
+	  nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?,
+	  false);
+        wb(nbytes, vaddr, ":W", data)
     }
 }
 
@@ -214,43 +206,33 @@ function observe_mem_write (addr, len) = {
 }
 
 val rmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
-  seg_reg_idx, bool) -> (option(string), Capability)
+  seg_reg_idx, bool) -> Capability
 
 function rmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, mem_ptr?) = {
     assert(in_64bit_mode(proc_mode));
-    let (flg, lin_addr) : (option(string), sbits(64)) =
-      ea_to_la(proc_mode, eff_addr, seg_reg, 16);
+    let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
     let vaddr = la_to_va (addr_size, ":R", lin_addr);
-    if is_some(flg) then {
-        (flg, null_cap)
+    let load_cap? = check_linear_memory_access(proc_mode, addr_size,
+	cap_size, vaddr, base_reg, seg_reg, ":R", true, mem_ptr?, false);
+    let cap = rcap(vaddr);
+    if not_bool(load_cap?) then {
+       {cap with tag = false}
     } else {
-        let load_cap? = check_linear_memory_access(proc_mode, addr_size,
-	    cap_size, vaddr, base_reg, seg_reg, ":R", true, mem_ptr?, false);
-        let (flg, cap) = rcap(vaddr);
-        if is_none(flg) & not_bool(load_cap?) then {
-           (None(), {cap with tag = false})
-        } else {
-            (flg, cap)
-        }
+       cap
     }
 }
 
 val wmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
-  seg_reg_idx, Capability, bool) -> option(string)
+  seg_reg_idx, Capability, bool) -> unit
 
 function wmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, data,
   mem_ptr?) = {
     assert(in_64bit_mode(proc_mode));
-    let (flg, lin_addr) : (option(string), sbits(64)) =
-      ea_to_la(proc_mode, eff_addr, seg_reg, 16);
+    let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
     let vaddr = la_to_va (addr_size, ":W", lin_addr);
-    if is_some(flg) then {
-        flg
-    } else {
-        let load_cap? = check_linear_memory_access(proc_mode, addr_size,
-	    cap_size, vaddr, base_reg, seg_reg, ":W", true, mem_ptr?, data.tag);
-        wcap (vaddr, data)
-    }
+    let load_cap? = check_linear_memory_access(proc_mode, addr_size, cap_size,
+	vaddr, base_reg, seg_reg, ":W", true, mem_ptr?, data.tag);
+    wcap (vaddr, data)
 }
 
 $endif
