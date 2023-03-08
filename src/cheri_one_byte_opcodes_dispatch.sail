@@ -1,15 +1,3 @@
-/* NOP */
-val x86_one_byte_nop : (proc_mode, sbits(48), sbits(48), prefixes, bits(8), bits(8), modr_m, sib) -> unit
-
-function x86_one_byte_nop (proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib) = {
-    let increment_rip_by = 0;
-    let increment_rip_by : bits(3) = bits_of_int(increment_rip_by, 3);
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
-    let badlength? : option(int) = check_instruction_length(start_rip, truncate(temp_rip, 48), 0b000);
-    if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
-    write_iptr(proc_mode, truncate(temp_rip, 48))
-}
-
 function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib) = {
     if 0x06 == prefixes[opr] & logbitp(3, rex_byte) then {
         x86_fault("#UD")
@@ -237,13 +225,6 @@ function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, r
               x86_leac(proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
               true
           }
-      },
-      0x90 => {
-          if 0xf0 == prefixes[lck] then {
-              x86_fault("#UD")
-          };
-          x86_one_byte_nop(proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
-          true
       },
       0xc7 => {
           if 0x06 != prefixes[opr] then false else {
