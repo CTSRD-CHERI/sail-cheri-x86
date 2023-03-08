@@ -98,3 +98,24 @@ function x86_mov_cap_regs_op_en_rm (proc_mode, start_rip, temp_rip, prefixes, re
     };
     write_iptr(proc_mode, temp_rip)
 }
+
+/* LEAC rc, ea */
+val x86_leac : (proc_mode, sbits(48), sbits(48), prefixes, bits(8), bits(8), modr_m, sib) -> unit
+
+function x86_leac (proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib) = {
+    let r_m : bits(3) = modr_m[r_m];
+    let mod_var : bits(2) = modr_m[mod];
+    let reg : bits(3) = modr_m[reg];
+    let (m, increment_rip_by) : (sbits(64), {|0, 1, 2, 4|}) = x86_effective_addr(proc_mode, prefixes, temp_rip, rex_byte, r_m, mod_var, sib, 0b000);
+    let increment_rip_by : bits(3) = bits_of_int(increment_rip_by, 3);
+    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
+    let badlength? : option(int) = check_instruction_length(start_rip, truncate(temp_rip, 48), 0b000);
+    if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
+    let base_reg = select_base_register(proc_mode, rex_byte, r_m, mod_var, sib);
+    let seg_reg : seg_reg_idx = select_segment_register(proc_mode, prefixes, mod_var, r_m, sib);
+    let cap = cap_base_reg(cap_reg_index(address_size, base_reg, seg_reg, ":R"));
+    let (success, cap) = setCapAddr(cap, m);
+    clearTagIf(cap, not_bool(success));
+    write_gpr(unsigned(reg_index(reg, rex_byte, 0b10)), cap);
+    write_iptr(proc_mode, truncate(temp_rip, 48))
+}

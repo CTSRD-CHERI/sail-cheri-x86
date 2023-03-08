@@ -225,6 +225,19 @@ function ext_one_byte_opcode_execute(proc_mode, start_rip, temp_rip, prefixes, r
               true
           }
       },
+      0x8d => {
+          // LEA should never be used with the 07 prefix
+          if 0x07 == prefixes[adr] then {
+              x86_fault("(:UD)")
+          };
+          if 0x06 != prefixes[opr] then false else {
+              if modr_m[mod] == 0b11 | 0xf0 == prefixes[lck] then {
+                  x86_fault("(:UD)")
+              };
+              x86_leac(proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, modr_m, sib);
+              true
+          }
+      },
       0x90 => {
           if 0xf0 == prefixes[lck] then {
               x86_fault("#UD")
