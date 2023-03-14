@@ -25,8 +25,7 @@ function x86_addc_subc_orc_andc_xorc_e_g (operation, proc_mode, start_rip, temp_
     let seg_reg : seg_reg_idx = select_segment_register(proc_mode, prefixes, mod_var, r_m, sib);
     let (e, increment_rip_by, e_addr) : (Capability, {|0, 1, 2, 4|}, sbits(64)) = x86_cap_from_modr_m_and_sib_bytes(proc_mode, false, seg_reg, prefixes, temp_rip, rex_byte, r_m, mod_var, sib, 0b000);
     let increment_rip_by : bits(3) = bits_of_int(increment_rip_by, 3);
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
-    let temp_rip : sbits(48) = truncate(temp_rip, 48);
+    let temp_rip : sbits(48) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
     let badlength? : option(int) = check_instruction_length(start_rip, temp_rip, 0b000);
     if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
     let input_rflags : rflagsbits = rflags;
@@ -67,8 +66,7 @@ function x86_addc_subc_orc_andc_xorc_g_e (operation, proc_mode, start_rip, temp_
     let inst_ac? : bool = true;
     let (e, increment_rip_by, e_addr) : (bits(128), {|0, 1, 2, 4|}, sbits(64)) = x86_operand_from_modr_m_and_sib_bytes(proc_mode, 0b0, operand_size, inst_ac?, false, seg_reg, prefixes, temp_rip, rex_byte, r_m, mod_var, sib, 0b000);
     let increment_rip_by : bits(3) = bits_of_int(increment_rip_by, 3);
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
-    let temp_rip : sbits(48) = truncate(temp_rip, 48);
+    let temp_rip : sbits(48) = add_to_iptr(proc_mode, temp_rip, sail_zero_extend(increment_rip_by, 48));
     let badlength? : option(int) = check_instruction_length(start_rip, temp_rip, 0b000);
     if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
     let input_rflags : rflagsbits = rflags;
@@ -108,13 +106,12 @@ function x86_addc_subc_orc_andc_xorc_e_i (operation, proc_mode, start_rip, temp_
     let imm_size : {|1, 4|} = { if opcode == 0x83 then 1 else 4 };
     let seg_reg : seg_reg_idx = select_segment_register(proc_mode, prefixes, mod_var, r_m, sib);
     let (e, increment_rip_by, e_addr) : (Capability, {|0, 1, 2, 4|}, sbits(64)) = x86_cap_from_modr_m_and_sib_bytes(proc_mode, false, seg_reg, prefixes, temp_rip, rex_byte, r_m, mod_var, sib, bits_of_int(imm_size, 3));
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, bits_of_int(increment_rip_by, 48));
-    let temp_rip : sbits(48) = truncate(temp_rip, 48);
+    let temp_rip : sbits(48) = add_to_iptr(proc_mode, temp_rip, bits_of_int(increment_rip_by, 48));
     let imm : bits(128) = rme_size(proc_mode, select_address_size(proc_mode, Some(prefixes)), imm_size, sail_sign_extend(temp_rip, 64), None(), 1, ":X", false, false);
     let imm : bits(32) = truncate(imm, 32);
     let imm : int = loghead(ash(e_size, 3), binary_logext(ash(imm_size, 3), unsigned(imm)));
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, bits_of_int(imm_size, 48));
-    let badlength? : option(int) = check_instruction_length(start_rip, truncate(temp_rip, 48), 0b000);
+    let temp_rip : sbits(48) = add_to_iptr(proc_mode, temp_rip, bits_of_int(imm_size, 48));
+    let badlength? : option(int) = check_instruction_length(start_rip, temp_rip, 0b000);
     if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
     let input_rflags : rflagsbits = rflags;
     let (result_addr, output_rflags, undefined_flags) : (bits(64), rflagsbits, rflagsbits) = gpr_arith_logic_spec(e_size, operation, e.address, bits_of_int(imm, 64), input_rflags);
@@ -147,8 +144,8 @@ function x86_addc_subc_orc_andc_xorc_cax_i (operation, proc_mode, start_rip, tem
     let cax_var = read_gpr(0);
     let imm : bits(128) = rme_size(proc_mode, select_address_size(proc_mode, Some(prefixes)), operand_size, sail_sign_extend(temp_rip, 64), None(), 1, ":X", false, false);
     let imm : bits(64) = sail_sign_extend(truncate(imm, 32), 64);
-    let temp_rip : sbits(49) = add_to_iptr(proc_mode, temp_rip, bits_of_int(operand_size, 48));
-    let badlength? : option(int) = check_instruction_length(start_rip, truncate(temp_rip, 48), 0b000);
+    let temp_rip : sbits(48) = add_to_iptr(proc_mode, temp_rip, bits_of_int(operand_size, 48));
+    let badlength? : option(int) = check_instruction_length(start_rip, temp_rip, 0b000);
     if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
     let input_rflags : rflagsbits = rflags;
     let (result_addr, output_rflags, undefined_flags) : (bits(64), rflagsbits, rflagsbits) = gpr_arith_logic_spec(8, operation, cax_var.address, imm, input_rflags);
