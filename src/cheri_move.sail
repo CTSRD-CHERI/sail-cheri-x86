@@ -113,9 +113,9 @@ function x86_leac (proc_mode, start_rip, temp_rip, prefixes, rex_byte, opcode, m
     if is_some(badlength?) then x86_fault("(!!FAULT-FRESH :GP 0 :INSTRUCTION-LENGTH BADLENGTH?)");
     let base_reg = select_base_register(proc_mode, rex_byte, r_m, mod_var, sib);
     let seg_reg : seg_reg_idx = select_segment_register(proc_mode, prefixes, mod_var, r_m, sib);
-    let cap = cap_base_reg(cap_reg_index(address_size, base_reg, seg_reg, ":R"));
-    let (success, cap) = setCapAddr(cap, m);
-    clearTagIf(cap, not_bool(success));
+    let cap = cap_base_reg(cap_reg_index(16, base_reg, seg_reg, ":R"));
+    let (representable, cap) = setCapAddr(cap, m);
+    let cap = clearTagIf(cap, not_bool(representable));
     write_gpr(unsigned(reg_index(reg, rex_byte, 0b10)), cap);
     write_iptr(proc_mode, truncate(temp_rip, 48))
 }
