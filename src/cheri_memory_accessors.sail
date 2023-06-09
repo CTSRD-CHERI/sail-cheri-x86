@@ -144,14 +144,6 @@ function select_segment_register (proc_mode, prefixes, mod_var, r_m, sib) = {
     }
 }
 
-val la_to_va : (address_size, string, sbits(64)) -> sbits(64)
-
-function la_to_va (addr_size, access_kind, lin_addr) = {
-    if addr_size == 16 | access_kind == ":X" then lin_addr
-    // DDC offsetting when not using capability-aware addressing
-    else lin_addr + ddc.address
-}
-
 val load_bytes_from_ea : forall 'nbytes, 'nbytes in {1, 2, 4, 6, 8, 10, 16}.
   (proc_mode, address_size, int('nbytes), sbits(64), option(base_reg_idx), seg_reg_idx, string, bool, bool) -> bits(8 * 'nbytes)
 
@@ -160,8 +152,7 @@ function load_bytes_from_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, s
     if not_bool(in_64bit_mode(proc_mode)) & seg_reg == 1 & r_x == ":R" & cs_attrs[r] == 0b0 then {
         x86_fault(":EXECUTE-ONLY-CODE-SEGMENT")
     } else {
-        let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
-        let vaddr = la_to_va (addr_size, r_x, lin_addr);
+        let vaddr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
         let load_cap? = check_linear_memory_access(proc_mode, addr_size,
 	  nbytes, vaddr, base_reg, seg_reg, r_x, check_alignment?, mem_ptr?,
 	  false);
@@ -180,8 +171,7 @@ function store_bytes_to_ea (proc_mode, addr_size, nbytes, eff_addr, base_reg, se
     if not_bool(in_64bit_mode(proc_mode)) & (seg_reg == 1 | seg_attrs[w] == 0b0) then {
         x86_fault(":NON-WRITABLE-SEGMENT")
     } else {
-        let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
-        let vaddr = la_to_va (addr_size, ":W", lin_addr);
+        let vaddr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, nbytes);
         let load_cap? = check_linear_memory_access(proc_mode, addr_size,
 	  nbytes, vaddr, base_reg, seg_reg, ":W", check_alignment?, mem_ptr?,
 	  false);
@@ -210,8 +200,7 @@ val rmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
 
 function rmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, mem_ptr?) = {
     assert(in_64bit_mode(proc_mode));
-    let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
-    let vaddr = la_to_va (addr_size, ":R", lin_addr);
+    let vaddr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
     let load_cap? = check_linear_memory_access(proc_mode, addr_size,
 	cap_size, vaddr, base_reg, seg_reg, ":R", true, mem_ptr?, false);
     let cap = rcap(vaddr);
@@ -228,8 +217,7 @@ val wmecap : (proc_mode, address_size, sbits(64), option(base_reg_idx),
 function wmecap (proc_mode, addr_size, eff_addr, base_reg, seg_reg, data,
   mem_ptr?) = {
     assert(in_64bit_mode(proc_mode));
-    let lin_addr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
-    let vaddr = la_to_va (addr_size, ":W", lin_addr);
+    let vaddr : sbits(64) = ea_to_la(proc_mode, eff_addr, seg_reg, 16);
     let load_cap? = check_linear_memory_access(proc_mode, addr_size, cap_size,
 	vaddr, base_reg, seg_reg, ":W", true, mem_ptr?, data.tag);
     wcap (vaddr, data)
